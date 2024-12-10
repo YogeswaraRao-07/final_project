@@ -10,10 +10,10 @@ def index():
 @app.route('/admin')
 def admin():
     # Renders the admin.html page (admin panel)
-    return render_template('admin/admin.html')
+    return render_template('/final_project/admin/templates/admin.html')
 
 def select_class():
-    return render_template('class_management/select_class.html')
+    return render_template('/final_project/user/templates/select_class.html')
 
 @app.route('/get_attendance', methods=['POST'])
 def get_attendance():

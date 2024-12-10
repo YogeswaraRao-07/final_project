@@ -14,20 +14,31 @@
     <main>
         <section>
             <form action="/get_attendance" method="POST">
-                <label for="class_name">Class Name:</label>
-                <select name="class_name" id="class_name">
-                    <option value="math101">Math 101</option>
-                    <option value="eng102">English 102</option>
-                    <option value="cs103">Computer Science 103</option>
-                </select>
-
-                <label for="room_number">Room Number:</label>
-                <select name="room_number" id="room_number">
-                    <option value="101">Ro 101</option>
-                    <option value="102">Room 102</option>
-                    <option value="103">Room 103</option>
-                </select>
-
+                <div class="item1">
+                    <label for="class_name">Class Name:</label>
+                    <select name="class_name" id="class_name">
+                        <option value="csm">CSM</option>
+                        <option value="cse">CSE</option>
+                        <option value="csd">CSD</option>
+                        <option value="ece">ECE</option>
+                        <option value="eee">EEE</option>
+                    </select>
+                </div>
+                <div class="item2">
+                    <label for="room_number">Room Number:</label>
+                    <select name="room_number" id="room_number">
+                        <option value="ff-01">FF-01</option>
+                        <option value="ff-02">FF-02</option>
+                        <option value="ff-03">FF-03</option>
+                        <option value="ff-04">FF-04</option>
+                        <option value="sf-01">SF-01</option>
+                        <option value="sf-02">SF-02</option>
+                        <option value="sf-03">SF-03</option>
+                        <option value="sf-04">SF-04</option>
+                    </select>
+                </div>
+                <br />
+                <br />
                 <a href="get_attendance.html">Get Attendance</a>
             </form>
         </section>
