@@ -1,0 +1,82 @@
+/* class.css */
+body {
+    font-family: Arial, sans-serif;
+    background-color: #f4f4f9;
+    margin: 0;
+    padding: 0;
+}
+
+header {
+    background-color: #3f51b5;
+    color: white;
+    text-align: center;
+    padding: 1.5em 0;
+}
+
+main {
+    padding: 20px;
+    text-align: center;
+}
+
+section {
+    background-color: white;
+    padding: 20px;
+    border-radius: 8px;
+    width: 50%;
+    margin: 20px auto;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+select {
+    padding: 10px;
+    margin: 10px 0;
+    font-size: 1rem;
+}
+
+button {
+    padding: 12px 24px;
+    background-color: #3f51b5;
+    color: white;
+    border: none;
+    font-size: 1rem;
+    cursor: pointer;
+}
+
+button:hover {
+    background-color: #303f9f;
+}
+
+table {
+    width: 80%;
+    margin: 20px auto;
+    border-collapse: collapse;
+}
+
+th, td {
+    padding: 12px;
+    text-align: left;
+    border: 1px solid #ddd;
+}
+
+th {
+    background-color: #3f51b5;
+    color: white;
+}
+
+footer {
+    background-color: #3f51b5;
+    color: white;
+    text-align: center;
+    padding: 10px 0;
+}
+a {
+    text-decoration: none;
+    color: white;
+    background-color: #3f51b5;
+    padding: 10px 20px;
+    border-radius: 5px;
+    font-size: 14px;
+}
+a:hover {
+    background-color: #303f9f;
+}

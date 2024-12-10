@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Select Class</title>
+    <link rel="stylesheet" href="../static/css/class.css">
+</head>
+<body>
+    <header>
+        <h1>Select Class and Room</h1>
+    </header>
+
+    <main>
+        <section>
+            <form action="/get_attendance" method="POST">
+                <label for="class_name">Class Name:</label>
+                <select name="class_name" id="class_name">
+                    <option value="math101">Math 101</option>
+                    <option value="eng102">English 102</option>
+                    <option value="cs103">Computer Science 103</option>
+                </select>
+
+                <label for="room_number">Room Number:</label>
+                <select name="room_number" id="room_number">
+                    <option value="101">Room 101</option>
+                    <option value="102">Room 102</option>
+                    <option value="103">Room 103</option>
+                </select>
+
+                <a href="get_attendance.html">Get Attendance</a>
+            </form>
+        </section>
+    </main>
+
+
+</body>
+</html>
