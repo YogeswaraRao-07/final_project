@@ -1,6 +1,8 @@
-from flask import Flask, render_template, request
+from flask import Flask, render_template, request, jsonify
 
 app = Flask(__name__)
+
+model_generation_time = None
 
 @app.route('/')
 def index():
@@ -13,12 +15,17 @@ def admin():
     return render_template('/final_project/admin/templates/admin.html')
 
 def select_class():
+    if request.method == 'POST':
+        class_name = request.form['class_name']
+        room_number = request.form['room_number']
+        return render_template('/final_project/user/templates/get_attendance.html', class_name=class_name, room_number=room_number)
     return render_template('/final_project/user/templates/select_class.html')
 
 @app.route('/get_attendance', methods=['POST'])
 def get_attendance():
     class_name = request.form['class_name']
     room_number = request.form['room_number']
+    return render_template('/final_project/user/templates/get_attendance.html', class_name=class_name, room_number=room_number)
 
 @app.route('/user')
 def user():

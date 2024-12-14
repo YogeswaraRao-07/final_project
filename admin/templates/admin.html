@@ -6,6 +6,7 @@
     <title>Admin Panel</title>
     <!-- Link the external CSS file -->
     <link rel="stylesheet" href="/admin/static/css/admin.css">
+    <script src="admin/templates/inner-methods/generateModel.js" ></script>
 </head>
 <body>
     <!-- Header Section -->
@@ -19,7 +20,7 @@
             <h2>Model Management</h2>
             <button onclick="location.href='/createModel'">Create Model</button>
             <button onclick="location.href='/getDataset'">Load Dataset</button>
-            <button onclick="location.href='/generateModel'">Generate Model</button>
+            <button onclick="generateModel()">Generate Model</button>
         </section>
     </main>
 

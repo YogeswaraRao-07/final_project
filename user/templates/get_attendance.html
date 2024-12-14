@@ -8,28 +8,35 @@
 </head>
 <body>
     <header>
-        <h1>Attendance for {{ class_name }} - Room {{ room_number }}</h1>
+        <h1>Attendance Details</h1>
     </header>
 
     <main>
-        <section>
-            <table>
-                <thead>
-                    <tr>
-                        <th>Student Name</th>
-                        <th>Status</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for student in attendance %}
-                    <tr>
-                        <td>{{ student.name }}</td>
-                        <td>{{ student.status }}</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </section>
+        <h2>Class: {{ class_name }}</h2>
+        <h3>Room Number: {{ room_number }}</h3>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Student ID</th>
+                    <th>Student Name</th>
+                    <th>Attendance Status</th>
+                    <th>Remarks</th>
+                    <th>Date & Time</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for record in attendance_data %}
+                <tr>
+                    <td>{{ record.student_id }}</td>
+                    <td>{{ record.name }}</td>
+                    <td>{{ record.status }}</td>
+                    <td>{{ record.remarks }}</td>
+                    <td>{{ record.generated_at }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
     </main>
 
     <footer>
