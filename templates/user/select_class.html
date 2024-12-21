@@ -5,47 +5,45 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Select Class</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/get_attendance.css') }}">
+    <link rel="stylesheet" href="/final_project/static/css/get_attendance.css">
 </head>
 <body>
     <header>
         <h1>Select Class and Room</h1>
     </header>
-
     <main>
         <section>
-            <form action="{{ url_for('select_class') }}">
+            <form method="POST" action="{{ url_for('select_class') }}">
                 <div class="item1">
                     <label for="class_name">Class Name:</label>
                     <select name="class_name" id="class_name">
                         <option value="">--Select--</option>
-                        <option value="csm">CSM</option>
-                        <option value="cse">CSE</option>
-                        <option value="csd">CSD</option>
-                        <option value="ece">ECE</option>
-                        <option value="eee">EEE</option>
+                        <option value="CSM">CSM</option>
+                        <option value="CSE">CSE</option>
+                        <option value="CSD">CSD</option>
+                        <option value="ECE">ECE</option>
+                        <option value="EEE">EEE</option>
                     </select>
                 </div>
                 <div class="item2">
                     <label for="room_number">Room Number:</label>
                     <select name="room_number" id="room_number">
                         <option value="">--Select--</option>
-                        <option value="ff-01">FF-01</option>
-                        <option value="ff-02">FF-02</option>
-                        <option value="ff-03">FF-03</option>
-                        <option value="ff-04">FF-04</option>
-                        <option value="sf-01">SF-01</option>
-                        <option value="sf-02">SF-02</option>
-                        <option value="sf-03">SF-03</option>
-                        <option value="sf-04">SF-04</option>
+                        <option value="FF-01">FF-01</option>
+                        <option value="FF-02">FF-02</option>
+                        <option value="FF-03">FF-03</option>
+                        <option value="FF-04">FF-04</option>
+                        <option value="SF-01">SF-01</option>
+                        <option value="SF-02">SF-02</option>
+                        <option value="SF-03">SF-03</option>
+                        <option value="SF-04">SF-04</option>
                     </select>
                 </div>
                 <br />
                 <br />
-                <a href="{{ url_for('get_attendance') }}">Get Attendance</a>
+                <button type="submit">Get Attendance</button>
             </form>
         </section>
     </main>
-
-
 </body>
 </html>

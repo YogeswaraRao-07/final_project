@@ -21,22 +21,26 @@ def admin():
 @app.route('/select_class', methods=['GET', 'POST'])
 def select_class():
     if request.method == 'POST':
-        # Get form data
-        class_name = request.form.get('class_name')  # Safe access
-        room_number = request.form.get('room_number')  # Safe access
-
-        # Render get_attendance.html with the received data
-        return render_template('user/get_attendance.html', class_name=class_name, room_number=room_number)
-
-    # For GET request, render the select_class.html page
+        class_name = request.form.get('class_name')
+        room_number = request.form.get('room_number')
+        attendance_data = [
+            {'student_id': '21A51A4201', 'name': 'John Doe', 'status': 'Present', 'remarks': 'Good', 'generated_at': '21-12-2024 & 15:33'},
+            {'student_id': '21A51A4202', 'name': 'Jane Smith', 'status': 'Absent', 'remarks': 'Good', 'generated_at': '21-12-2024 & 15:33'},
+            {'student_id': '21A51A4203', 'name': 'Emily Johnson', 'status': 'Present', 'remarks': 'Good', 'generated_at': '21-12-2024 & 15:33'},
+            {'student_id': '21A51A4204', 'name': 'Michael Brown', 'status': 'Present', 'remarks': 'Good', 'generated_at': '21-12-2024 & 15:33'},
+            {'student_id': '21A51A4205', 'name': 'Sarah Davis', 'status': 'Absent', 'remarks': 'Good', 'generated_at': '21-12-2024 & 15:33'},
+            {'student_id': '21A51A4206', 'name': 'Yogeswara Rao', 'status': 'Present', 'remarks': 'Good', 'generated_at': '21-12-2024 & 15:33'},
+        ]
+        return render_template('user/get_attendance.html', class_name=class_name, room_number=room_number, attendance_data=attendance_data)
     return render_template('user/select_class.html')
 
+'''
 @app.route('/get_attendance', methods=['POST'])
 def get_attendance():
     class_name = request.form['class_name']
     room_number = request.form['room_number']
     return render_template('user/get_attendance.html', class_name=class_name, room_number=room_number)
-
+'''
 '''
 @app.route('/user')
 def user():
@@ -49,5 +53,5 @@ def student():
     return render_template('student.html')
 '''
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     app.run(debug=True)

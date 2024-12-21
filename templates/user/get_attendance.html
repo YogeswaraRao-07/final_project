@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Attendance for {{ class_name }} - {{ room_number }}</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/get_attendance.css') }}">
+    <link rel="stylesheet" href="/final_project/static/css/get_attendance.css">
 </head>
 <body>
     <header>
@@ -12,8 +13,8 @@
     </header>
 
     <main>
-        <h2>Class: {{ class_name }}</h2>
-        <h3>Room Number: {{ room_number }}</h3>
+        <h3>Branch: <span>{{ class_name }}</span></h3>
+        <h3>Room Number: <span>{{ room_number }}</span></h3>
 
         <table>
             <thead>
@@ -38,7 +39,6 @@
             </tbody>
         </table>
     </main>
-
     <footer>
         <p>&copy; 2024 Attendance System. All rights reserved.</p>
     </footer>
