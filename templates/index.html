@@ -5,24 +5,28 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Attendance System</title>
     <!-- Link to the external CSS file in the css folder -->
-    <link rel="stylesheet" href="../static/css/styles.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/index.css') }}">
 </head>
 <body>
     <header>
         <h1>Attendance System</h1>
     </header>
     <div class="container">
+        <section id="register-section">
+            <h2>If New Student: Register Here</h2>
+            <a class="register-here-button" href="{{ url_for('register') }}">Register Here</a>
+        </section>
         <!-- Admin Section -->
         <div class="card">
             <h2>Admin</h2>
             <p>Manage the system, users, and attendance records.</p>
-            <a href="/final_project/admin/templates/admin.html">Go to Admin Panel</a>
+            <a href="{{ url_for('admin') }}">Go to Admin Panel</a>
         </div>
         <!-- User Section -->
         <div class="card">
             <h2>User</h2>
             <p>Access your account and view attendance data.</p>
-            <a href="/final_project/user/templates/select_class.html">Go to User Panel</a>
+            <a href="{{ url_for('select_class') }}">Go to User Panel</a>
         </div>
         <!-- Student Section -->
         <div class="card">

@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register Student</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/register.css') }}">
+</head>
+<body>
+    <header>
+        <h1>Register New Student</h1>
+    </header>
+
+    <main>
+        {% if success %}
+            <div class="success-message">Student registered and images uploaded successfully!</div>
+        {% endif %}
+
+        <form method="POST" action="/register" enctype="multipart/form-data">
+            <div class="form-group">
+                <label for="student_id">Student ID:</label>
+                <input type="text" id="student_id" name="student_id" required>
+            </div>
+
+            <div class="form-group">
+                <label for="name">Name:</label>
+                <input type="text" id="name" name="name" required>
+            </div>
+
+            <div class="form-group">
+                <label for="branch">Branch:</label>
+                <input type="text" id="branch" name="branch" required>
+            </div>
+
+            <div class="form-group">
+                <label for="section">Section:</label>
+                <input type="text" id="section" name="section" required>
+            </div>
+
+            <div class="form-group">
+                <label for="images">Upload Images (at least 10 for better recognition):</label>
+                <input type="file" id="images" name="images" accept="image/*" multiple required>
+            </div>
+
+            <button type="submit" class="register-button">Register Student</button>
+        </form>
+
+        <a href="/final_project/templates/index.html" class="back-link">Back to Home</a>
+    </main>
+</body>
+</html>

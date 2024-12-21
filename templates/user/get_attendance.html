@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Attendance for {{ class_name }} - {{ room_number }}</title>
-    <link rel="stylesheet" href="../static/css/class.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/get_attendance.css') }}">
 </head>
 <body>
     <header>

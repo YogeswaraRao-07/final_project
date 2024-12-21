@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Select Class</title>
-    <link rel="stylesheet" href="../static/css/class.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/get_attendance.css') }}">
 </head>
 <body>
     <header>
@@ -13,7 +13,7 @@
 
     <main>
         <section>
-            <form action="/get_attendance" method="POST">
+            <form action="{{ url_for('select_class') }}">
                 <div class="item1">
                     <label for="class_name">Class Name:</label>
                     <select name="class_name" id="class_name">
@@ -41,7 +41,7 @@
                 </div>
                 <br />
                 <br />
-                <a href="get_attendance.html">Get Attendance</a>
+                <a href="{{ url_for('get_attendance') }}">Get Attendance</a>
             </form>
         </section>
     </main>
