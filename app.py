@@ -11,7 +11,7 @@ def index():
 
 @app.route('/register')
 def register():
-    return render_template('admin/register.html')
+    return render_template('registration/register.html')
 
 @app.route('/admin')
 def admin():
@@ -33,6 +33,25 @@ def select_class():
         ]
         return render_template('user/get_attendance.html', class_name=class_name, room_number=room_number, attendance_data=attendance_data)
     return render_template('user/select_class.html')
+
+@app.route('/student_attendance', methods=['POST', 'GET'])
+def student_attendance():
+    roll_number = request.form['roll_number']
+    # Simulate fetching data from the database
+    attendance_db = {
+        '1234': [
+            {'date': '2024-12-18', 'status': 'Present'},
+            {'date': '2024-12-19', 'status': 'Absent'},
+            {'date': '2024-12-20', 'status': 'Present'}
+        ],
+        '5678': [
+            {'date': '2024-12-18', 'status': 'Absent'},
+            {'date': '2024-12-19', 'status': 'Present'},
+            {'date': '2024-12-20', 'status': 'Present'}
+        ]
+    }
+    attendance_details = attendance_db.get(roll_number, [])
+    return render_template('student_attendance.html', roll_number=roll_number, attendance_details=attendance_details)
 
 '''
 @app.route('/get_attendance', methods=['POST'])

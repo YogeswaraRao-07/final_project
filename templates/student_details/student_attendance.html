@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Attendance Report</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/student_attendance.css') }}">
+    <link rel="stylesheet" href="/final_project/static/css/student_attendance.css">
+</head>
+<body>
+    <h1>Student Attendance Report</h1>
+    <form action="/student_attendance" method="POST">
+        <label for="roll_number">Enter Roll Number:</label>
+        <input type="text" id="roll_number" name="roll_number" required>
+        <button type="submit">Get Report</button>
+    </form>
+
+    {% if attendance_details %}
+    <h2>Attendance Details for Roll Number: {{ roll_number }}</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Date</th>
+                <th>Status</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for record in attendance_details %}
+            <tr>
+                <td>{{ record.date }}</td>
+                <td>{{ record.status }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    {% if roll_number %}
+    <p>No attendance records found for Roll Number: {{ roll_number }}</p>
+    {% endif %}
+    {% endif %}
+</body>
+</html>

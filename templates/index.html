@@ -25,7 +25,7 @@
         </div>
         <!-- User Section -->
         <div class="card">
-            <h2>User</h2>
+            <h2>Faculty</h2>
             <p>Access your account and view attendance data.</p>
             <a href="{{ url_for('select_class') }}">Go to User Panel</a>
         </div>
@@ -33,7 +33,7 @@
         <div class="card">
             <h2>Student</h2>
             <p>View your attendance status and updates.</p>
-            <a href="/student">Go to Student Panel</a>
+            <a href="{{ url_for('student_attendance') }}">Go to Student Panel</a>
         </div>
     </div>
     <footer>
