@@ -3,40 +3,51 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Attendance Report</title>
+    <title>Student Attendance</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/student_attendance.css') }}">
     <link rel="stylesheet" href="/final_project/static/css/student_attendance.css">
 </head>
 <body>
-    <h1>Student Attendance Report</h1>
-    <form action="/student_attendance" method="POST">
-        <label for="roll_number">Enter Roll Number:</label>
-        <input type="text" id="roll_number" name="roll_number" required>
-        <button type="submit">Get Report</button>
-    </form>
+    <header>
+        <h1>Student Attendance</h1>
+    </header>
 
-    {% if attendance_details %}
-    <h2>Attendance Details for Roll Number: {{ roll_number }}</h2>
-    <table>
-        <thead>
-            <tr>
-                <th>Date</th>
-                <th>Status</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for record in attendance_details %}
-            <tr>
-                <td>{{ record.date }}</td>
-                <td>{{ record.status }}</td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-    {% else %}
-    {% if roll_number %}
-    <p>No attendance records found for Roll Number: {{ roll_number }}</p>
-    {% endif %}
-    {% endif %}
+    <main>
+        <section>
+            <form method="POST" action="{{ url_for('student_attendance') }}">
+                <label for="roll_number">Enter Roll Number:</label>
+                <input type="text" id="roll_number" name="roll_number" required>
+                <button type="submit">Submit</button>
+            </form>
+        </section>
+        {% if error_message %}
+            <p class="error">{{ error_message }}</p>
+        {% endif %}
+        {% if student_data %}
+            <section>
+                <h2>Attendance Report for {{ student_data.name }}</h2>
+                <p><strong>Overall Attendance:</strong> {{ student_data.attendance }}</p>
+
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Subject</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for detail in student_data.details %}
+                            <tr>
+                                <td>{{ detail.date }}</td>
+                                <td>{{ detail.subject }}</td>
+                                <td>{{ detail.status }}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </section>
+        {% endif %}
+    </main>
 </body>
 </html>

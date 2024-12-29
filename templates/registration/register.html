@@ -16,6 +16,9 @@
         {% if success %}
             <div class="success-message">Student registered and images uploaded successfully!</div>
         {% endif %}
+        {% if error_message %}
+            <div class="error-message">{{ error_message }}</div>
+        {% endif %}
 
         <form method="POST" action="/register" enctype="multipart/form-data">
             <div class="form-group">
@@ -39,10 +42,25 @@
             </div>
 
             <div class="form-group">
+                <label for="room_no">Room No:</label>
+                <input type="text" id="room_no" name="room_no" required>
+            </div>
+
+            <div class="form-group">
+                <label for="mobile">Mobile:</label>
+                <input type="tel" id="mobile" name="mobile" required>
+            </div>
+
+            <div class="form-group">
+                <label for="email">Email:</label>
+                <input type="email" id="email" name="email" required>
+            </div>
+
+        <!--    <div class="form-group">
                 <label for="images">Upload Images (at least 10 for better recognition):</label>
                 <input type="file" id="images" name="images" accept="image/*" multiple required>
             </div>
-
+        -->
             <button type="submit" class="register-button">Register Student</button>
         </form>
 
