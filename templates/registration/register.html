@@ -20,7 +20,7 @@
             <div class="error-message">{{ error_message }}</div>
         {% endif %}
 
-        <form method="POST" action="/register" enctype="multipart/form-data">
+        <form method="POST" action="/register" enctype="multipart/form-data" onsubmit="return validateFileCount(event)">
             <div class="form-group">
                 <label for="student_id">Student ID:</label>
                 <input type="text" id="student_id" name="student_id" required>
@@ -56,15 +56,62 @@
                 <input type="email" id="email" name="email" required>
             </div>
 
-        <!--    <div class="form-group">
+            <div class="form-group">
                 <label for="images">Upload Images (at least 10 for better recognition):</label>
                 <input type="file" id="images" name="images" accept="image/*" multiple required>
+                <br>
+                <br>
+                <button type="button" id="view-sample-button" class="sample-button">View Sample</button>
             </div>
-        -->
+
+            <!-- Modal Structure -->
+            <div id="sample-modal" class="modal">
+                <div class="modal-content">
+                    <span class="close-button">&times;</span>
+                    <h2>Sample Image</h2>
+                    <img src="{{ url_for('static', filename='images/sample_image.png') }}" alt="Sample Image" class="sample-image">
+                </div>
+            </div>
+
             <button type="submit" class="register-button">Register Student</button>
         </form>
 
         <a href="{{ url_for('index') }}" class="back-link">Back to Home</a>
     </main>
+    <script>
+        function validateFileCount(event) {
+            const fileInput = document.getElementById('images');
+            const files = fileInput.files;
+
+            if (files.length < 1) {
+                alert("Please upload at least 20 images.");
+                event.preventDefault();
+                return false;
+            }
+            return true;
+        }
+
+        // Get modal elements
+        const modal = document.getElementById('sample-modal');
+        const btn = document.getElementById('view-sample-button');
+        const span = document.querySelector('.close-button');
+
+        // Show modal when button is clicked
+        btn.onclick = function () {
+            modal.style.display = 'block';
+        };
+
+        // Close modal when close button is clicked
+        span.onclick = function () {
+            modal.style.display = 'none';
+        };
+
+        // Close modal when clicking outside the modal content
+        window.onclick = function (event) {
+            if (event.target === modal) {
+                modal.style.display = 'none';
+            }
+        };
+    </script>
 </body>
 </html>

@@ -23,6 +23,8 @@ for branch in branches:
     )
     ''')
 
+cursor.execute(f''' CREATE TABLE IF NOT EXISTS registration (branch TEXT, model_file LONGBLOB) ''')
+
 # Commit changes and close the connection
 conn.commit()
 conn.close()

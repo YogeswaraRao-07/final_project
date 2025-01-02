@@ -2,9 +2,43 @@ import openpyxl
 import os
 import sqlite3
 import pandas as pd
-from flask import Flask, request, render_template
+from flask import Flask, render_template, request, jsonify, redirect, url_for, flash
+from werkzeug.utils import secure_filename
+# import shutil
+# from sklearn.model_selection import train_test_split
+# import tensorflow as tf
+# from tensorflow.keras.applications import mobilenet_v2
+# from tensorflow.keras.models import Model, load_model
+# from tensorflow.keras.layers import Dense, Dropout, GlobalAveragePooling2D
+# from tensorflow.keras.preprocessing.image import ImageDataGenerator, load_img, img_to_array
+# import matplotlib.pyplot as plt
+# import numpy as np
+# from threading import Thread
 
 app = Flask(__name__)
+
+# app.secret_key = 'your_secret_key'  # Add a secret key for flash messages
+# app.config['DATASET_UPLOAD_FOLDER'] = r'C:/Users/yogesh/Downloads/final_project-main/final_project-main/final_project-main/datasets/csm/'
+# app.config['IMAGE_UPLOAD_FOLDER'] = r'C:/Users/yogesh/Downloads/final_project-main/final_project-main/final_project-main/images'
+# app.config['TEST_IMAGES_DIR'] = r'C:/Users/yogesh/Downloads/final_project-main/final_project-main/final_project-main/datasets/csmt/f'
+# app.config['MODEL_PATH'] = r'C:/Users/yogesh/Downloads/final_project-main/final_project-main/final_project-main/models/my_model.h5'
+# #labels
+# train_dir = r"C:/Users/yogesh/Downloads/final_project-main/final_project-main/final_project-main/datasets/csmp/train"
+# IMG_HEIGHT, IMG_WIDTH = 128, 128
+# BATCH_SIZE = 16
+# # Create generators
+# train_gen = ImageDataGenerator(rescale=1.0/255.0).flow_from_directory(
+#     train_dir,
+#     target_size=(IMG_HEIGHT, IMG_WIDTH),
+#     batch_size=BATCH_SIZE,
+#     class_mode='categorical'
+# )
+# # Load the model
+# model = load_model(app.config['MODEL_PATH'])
+#
+# IMG_HEIGHT = 224  # Example height
+# IMG_WIDTH = 224   # Example width
+# class_labels = ['class1', 'class2', 'class3']  # Example class labels
 
 model_generation_time = None
 
@@ -26,6 +60,31 @@ def register():
         room_no = request.form['room_no']
         mobile = request.form['mobile']
         email = request.form['email']
+
+        if 'images' not in request.files:
+            return "No images part in the form!"
+
+        images = request.files.getlist('images')  # Get the list of uploaded images
+
+        if not images:
+            return "No files uploaded!"
+
+        branch = request.form['branch'].lower()
+        section = request.form['section'].lower()
+        student_id = request.form['student_id'].lower()
+
+        # Create folders if they don't exist
+        datasets_folder = os.path.join('datasets', f"{branch.upper()}")
+        branch_folder = os.path.join(datasets_folder, f"{branch}_images")
+        student_folder = os.path.join(branch_folder, student_id)
+        os.makedirs(student_folder, exist_ok=True)
+
+        # Save images in the student-specific folder
+        for image in images:
+            if image and image.filename:  # Check for valid files
+                image_path = os.path.join(student_folder, secure_filename(image.filename))
+                image.save(image_path)
+                print(f"Saved image to: {image_path}")
 
         # Insert data into the correct branch table
         try:
