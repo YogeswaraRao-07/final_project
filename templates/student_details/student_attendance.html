@@ -23,25 +23,22 @@
         {% if error_message %}
             <p class="error">{{ error_message }}</p>
         {% endif %}
-        {% if student_data %}
-            <section>
-                <h2>Attendance Report for {{ student_data.name }}</h2>
-                <p><strong>Overall Attendance:</strong> {{ student_data.attendance }}</p>
 
+        {% if attendance_data %}
+            <section>
+                <h2>Attendance Report for Roll Number: <span>{{ roll_number }}</span></h2>
                 <table>
                     <thead>
                         <tr>
-                            <th>Date</th>
-                            <th>Subject</th>
                             <th>Status</th>
+                            <th>Time</th>
                         </tr>
                     </thead>
                     <tbody>
-                        {% for detail in student_data.details %}
+                        {% for record in attendance_data %}
                             <tr>
-                                <td>{{ detail.date }}</td>
-                                <td>{{ detail.subject }}</td>
-                                <td>{{ detail.status }}</td>
+                                <td>{{ record[0] }}</td>
+                                <td>{{ record[1] }}</td>
                             </tr>
                         {% endfor %}
                     </tbody>

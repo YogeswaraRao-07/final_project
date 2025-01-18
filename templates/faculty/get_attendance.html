@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Attendance for {{ class_name }} - {{ room_number }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/get_attendance_select_class.css') }}">
+    <link rel="stylesheet" href="/final_project/static/css/get_attendance_select_class.css">
+</head>
+<body>
+    <header>
+        <h1>Attendance Details</h1>
+    </header>
+
+    <main>
+        <h3>Branch: <span>CSM</span></h3>
+        <h3>Room Number: <span>{{ room_number }}</span></h3>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Student ID</th>
+                    <th>Student Name</th>
+                    <th>Attendance Status</th>
+                    <th>Date & Time</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for record in attendance_data %}
+                <tr>
+                    <td>{{ record.student_id }}</td>
+                    <td>{{ record.name }}</td>
+                    <td>{{ record.status }}</td>
+                    <td>{{ record.generated_at }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </main>
+    <footer>
+        <p>&copy; 2024 Attendance System. All rights reserved.</p>
+    </footer>
+</body>
+</html>

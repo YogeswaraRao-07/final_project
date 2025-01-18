@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Faculty Login Page</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/faculty_login.css') }}">
+    <link rel="stylesheet" href="/final_project/static/css/faculty_login.css">
+</head>
+<body>
+    <header>
+        <h1>Faculty Login</h1>
+    </header>
+    <main>
+        <form method="POST" action="{{ url_for('faculty_login') }}">
+            <label for="faculty_id">Faculty ID:</label>
+            <input type="text" id="faculty_id" name="faculty_id" required>
+
+            <label for="password">Password:</label>
+            <input type="password" id="password" name="password" required>
+
+            <button type="submit">Login</button>
+        </form>
+        {% if error_message %}
+            <p class="error">{{ error_message }}</p>
+        {% endif %}
+    </main>
+</body>
+</html>

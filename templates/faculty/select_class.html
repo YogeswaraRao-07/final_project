@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Select Class</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/get_attendance_select_class.css') }}">
+</head>
+<body>
+    <header>
+        <h1>Select Class and Room</h1>
+    </header>
+    <main>
+        <button id="cc-camera" onclick="accessCCTV()">Use CCTV Camera</button>
+        <button id="mobile-camera" onclick="accessMobileCamera()">Use Mobile Camera</button>
+        <button id="upload-video" onclick="document.getElementById('upload-video-form').style.display='block'">Upload Video</button>
+
+        <!-- Hidden form for uploading video -->
+        <div id="upload-video-form" style="display:none;">
+            <form id="videoUploadForm" enctype="multipart/form-data" method="POST" action="/upload_video">
+                <label for="video-file">Choose a video file:</label>
+                <input type="file" name="video_file" id="video-file" accept="video/*" required>
+                <button type="submit">Upload</button>
+            </form>
+        </div>
+
+        <section>
+            <form method="POST" action="{{ url_for('select_class') }}">
+                <div class="item1">
+                    <label for="class_name">Class Name:</label>
+                    <h1 id="class_name">CSM</h1>
+                </div>
+                <div class="item2">
+                    <label for="room_number">Room Number:</label>
+                    <select name="room_number" id="room_number">
+                        <option value="">--Select--</option>
+                        <option value="FF-01">FF-01</option>
+                        <option value="FF-02">FF-02</option>
+                        <option value="FF-03">FF-03</option>
+                        <option value="FF-04">FF-04</option>
+                        <option value="SF-01">SF-01</option>
+                        <option value="SF-02">SF-02</option>
+                        <option value="SF-03">SF-03</option>
+                        <option value="SF-04">SF-04</option>
+                    </select>
+                </div>
+                <button type="submit">Get Attendance</button>
+            </form>
+        </section>
+    </main>
+<script>
+    function accessCCTV() {
+        fetch('/access_cctv', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ room_id: '101' }) // Example: Room identifier
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert("CCTV stream initiated.");
+            } else {
+                alert("Failed to access CCTV.");
+            }
+        })
+        .catch(error => console.error("Error:", error));
+    }
+
+    function accessMobileCamera() {
+        fetch('/get_mobile_link', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ imei: '861612055290225' }) // Faculty's device IMEI
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                window.open(data.link, '_blank'); // Opens mobile camera stream
+            } else {
+                alert("Failed to access mobile camera.");
+            }
+        })
+        .catch(error => console.error("Error:", error));
+    }
+</script>
+</body>
+</html>

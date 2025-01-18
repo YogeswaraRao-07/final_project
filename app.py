@@ -1,46 +1,431 @@
-import openpyxl
+# --------------------------libraries----------------------------------------------------------------------------------
 import os
+import openpyxl
+import cap
+import time
+import joblib
+import scipy
 import sqlite3
 import pandas as pd
-from flask import Flask, render_template, request, jsonify, redirect, url_for, flash
+import cv2
+import numpy as np
+import shutil
+import tensorflow as tf
+from flask import Flask, render_template, request, jsonify, redirect, url_for, flash, session, Response
 from werkzeug.utils import secure_filename
-# import shutil
-# from sklearn.model_selection import train_test_split
-# import tensorflow as tf
-# from tensorflow.keras.applications import mobilenet_v2
-# from tensorflow.keras.models import Model, load_model
-# from tensorflow.keras.layers import Dense, Dropout, GlobalAveragePooling2D
-# from tensorflow.keras.preprocessing.image import ImageDataGenerator, load_img, img_to_array
-# import matplotlib.pyplot as plt
-# import numpy as np
-# from threading import Thread
+from sklearn.model_selection import train_test_split
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Conv2D, MaxPooling2D, Flatten, Dense
+#import face_recognition
+import pickle
+#----------------------------------------------------------------------------------------------------------------------
 
+# Flask App Initialization
 app = Flask(__name__)
-
-# app.secret_key = 'your_secret_key'  # Add a secret key for flash messages
-# app.config['DATASET_UPLOAD_FOLDER'] = r'C:/Users/yogesh/Downloads/final_project-main/final_project-main/final_project-main/datasets/csm/'
-# app.config['IMAGE_UPLOAD_FOLDER'] = r'C:/Users/yogesh/Downloads/final_project-main/final_project-main/final_project-main/images'
-# app.config['TEST_IMAGES_DIR'] = r'C:/Users/yogesh/Downloads/final_project-main/final_project-main/final_project-main/datasets/csmt/f'
-# app.config['MODEL_PATH'] = r'C:/Users/yogesh/Downloads/final_project-main/final_project-main/final_project-main/models/my_model.h5'
-# #labels
-# train_dir = r"C:/Users/yogesh/Downloads/final_project-main/final_project-main/final_project-main/datasets/csmp/train"
-# IMG_HEIGHT, IMG_WIDTH = 128, 128
-# BATCH_SIZE = 16
-# # Create generators
-# train_gen = ImageDataGenerator(rescale=1.0/255.0).flow_from_directory(
-#     train_dir,
-#     target_size=(IMG_HEIGHT, IMG_WIDTH),
-#     batch_size=BATCH_SIZE,
-#     class_mode='categorical'
-# )
-# # Load the model
-# model = load_model(app.config['MODEL_PATH'])
-#
-# IMG_HEIGHT = 224  # Example height
-# IMG_WIDTH = 224   # Example width
-# class_labels = ['class1', 'class2', 'class3']  # Example class labels
-
+app.secret_key = 'your_secret_key'
 model_generation_time = None
+#-------------------------------------folders--------------------------------------------------------------------------
+# Directory Configurations
+dataset_path = 'datasets/CSM/csm_images'
+train_path = 'datasets/CSM/csmp/train'
+test_path = 'datasets/CSM/csmp/test'
+val_path = 'datasets/CSM/csmp/val'
+app.config['UPLOAD_FOLDER'] = 'uploads/'
+app.config['ALLOWED_EXTENSIONS'] = {'mp4', 'avi', 'mov', 'mkv'}
+os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+EXTRACT_FRAMES_FOLDER = 'extract_frames/'
+DETECT_FOLDER = 'detect_objects/'
+#----------------------------------------------------------------------------------------------------------------------
+
+#----------------------------------detection objects-------------------------------------------------------------------
+# Ensure the detect_objects folder exists
+if not os.path.exists(DETECT_FOLDER):
+    os.makedirs(DETECT_FOLDER)
+
+# Function to detect faces in a single frame
+def detect_faces_in_single_frame():
+    # Clear the detect_objects folder
+    for file in os.listdir(DETECT_FOLDER):
+        file_path = os.path.join(DETECT_FOLDER, file)
+        if os.path.isfile(file_path):
+            os.unlink(file_path)
+
+    # Load the Haar Cascade for face detection
+    face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
+
+    # Select one frame (e.g., the first frame in the extract_frames folder)
+    frames = sorted(os.listdir(EXTRACT_FRAMES_FOLDER))
+    if not frames:
+        print("No frames found in the extract_frames folder.")
+        return "No frames found."
+
+    selected_frame_path = os.path.join(EXTRACT_FRAMES_FOLDER, frames[0])  # First frame
+    print(f"Selected frame: {selected_frame_path}")
+
+    # Read the selected frame
+    frame = cv2.imread(selected_frame_path)
+    if frame is None:
+        print("Failed to read the selected frame.")
+        return "Failed to read frame."
+
+    # Convert to grayscale for face detection
+    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+
+    # Detect faces in the frame
+    faces = face_cascade.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=5, minSize=(30, 30))
+    print(f"Number of faces detected: {len(faces)}")
+
+    # Draw rectangles around detected faces
+    for (x, y, w, h) in faces:
+        cv2.rectangle(frame, (x, y), (x + w, y + h), (255, 0, 0), 2)
+
+    # Save the processed frame to the detect_objects folder
+    output_frame_path = os.path.join(DETECT_FOLDER, 'detected_faces.jpg')
+    cv2.imwrite(output_frame_path, frame)
+    print(f"Processed frame saved to {output_frame_path}.")
+
+    # Return the count of detected faces
+    return {"message": "Face detection complete.", "face_count": len(faces)}
+#----------------------------------------------------------------------------------------------------------------------
+
+#---------------------------------------------uploading videos---------------------------------------------------------
+# Ensure train, test, val directories exist
+for path in [train_path, test_path, val_path]:
+    os.makedirs(path, exist_ok=True)
+
+# Allowed File Types
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in app.config['ALLOWED_EXTENSIONS']
+
+# Upload Video Route
+@app.route('/upload_video', methods=['POST'])
+def upload_video():
+    if 'video_file' not in request.files:
+        return jsonify({"success": False, "message": "No file part."}), 400
+
+    file = request.files['video_file']
+    if file.filename == '':
+        return jsonify({"success": False, "message": "No selected file."}), 400
+
+    if file and allowed_file(file.filename):
+        file_path = os.path.join(app.config['UPLOAD_FOLDER'], 'uploaded_video.mp4')
+        file.save(file_path)
+
+        # Train the model only if the .pkl file doesn't exist
+        model_path = 'face_encodings.pkl'
+        student_images_path = 'datasets/CSM/csm_images'  # Path to the student images directory
+        #if not os.path.exists(model_path):
+            # train_face_recognition_model(student_images_path, model_path)
+
+        extract_and_replace_frames(file_path)
+
+        face_detection_result = detect_faces_in_single_frame()
+
+        # Recognize students' roll numbers
+        # recognized_roll_numbers = recognize_faces(face_detection_result["frame_path"], model_path)
+
+        return jsonify({"success": True, "message": "Video uploaded and frames replaced.", "face_detection_result": face_detection_result["message"], "face_count": face_detection_result["face_count"]})
+#, "recognized_students": recognized_roll_numbers
+    else:
+        return jsonify({"success": False, "message": "Invalid file type."}), 400
+#----------------------------------------------------------------------------------------------------------------------
+
+# def train_face_recognition_model(student_images_path, output_model_path):
+#     face_encodings = {}
+#     for roll_number in os.listdir(student_images_path):
+#         student_folder = os.path.join(student_images_path, roll_number)
+#         if os.path.isdir(student_folder):
+#             for image_file in os.listdir(student_folder):
+#                 image_path = os.path.join(student_folder, image_file)
+#                 image = face_recognition.load_image_file(image_path)
+#                 face_locations = face_recognition.face_locations(image)
+#                 encodings = face_recognition.face_encodings(image, face_locations)
+#                 if encodings:
+#                     face_encodings[roll_number] = encodings[0]
+#
+#     with open(output_model_path, 'wb') as model_file:
+#         pickle.dump(face_encodings, model_file)
+#
+# def recognize_faces(frame_path, model_path='face_encodings.pkl'):
+#     with open(model_path, 'rb') as model_file:
+#         known_encodings = pickle.load(model_file)
+#
+#     frame = face_recognition.load_image_file(frame_path)
+#     face_locations = face_recognition.face_locations(frame)
+#     face_encodings = face_recognition.face_encodings(frame, face_locations)
+#
+#     recognized_roll_numbers = []
+#     for face_encoding in face_encodings:
+#         matches = face_recognition.compare_faces(list(known_encodings.values()), face_encoding)
+#         if True in matches:
+#             match_index = matches.index(True)
+#             recognized_roll_numbers.append(list(known_encodings.keys())[match_index])
+#
+#     return recognized_roll_numbers
+
+
+#----------------------------------------extract frames----------------------------------------------------------------
+# Extract and Replace Frames
+def extract_and_replace_frames(video_path):
+
+    # Directory to store frames
+    output_frames_dir = 'extract_frames/'
+    os.makedirs(output_frames_dir, exist_ok=True)
+
+    # Clear existing frames
+    for frame_file in os.listdir(output_frames_dir):
+        frame_path = os.path.join(output_frames_dir, frame_file)
+        os.remove(frame_path)
+
+    # Extract frames from the video
+    cap = cv2.VideoCapture(video_path)
+    frame_count = 0
+
+    while frame_count<5:
+        ret, frame = cap.read()
+        if not ret:
+            break
+
+        # Save each frame with a unique name
+        frame_path = os.path.join(output_frames_dir, f'frame_{frame_count + 1}.jpg')
+        cv2.imwrite(frame_path, frame)
+        frame_count += 1
+
+    cap.release()
+    print(f"{frame_count} frames extracted and replaced in {output_frames_dir}.")
+#----------------------------------------------------------------------------------------------------------------------
+
+#------------------------------------------preprocessing images--------------------------------------------------------
+# Preprocess Images
+def preprocess_images():
+    faces = []
+    labels = []
+
+    for filename in os.listdir(dataset_path):
+        if filename.endswith(".jpg"):
+            img_path = os.path.join(dataset_path, filename)
+            img = cv2.imread(img_path)
+            gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+
+            face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
+            faces_in_image = face_cascade.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=5, minSize=(30, 30))
+
+            for (x, y, w, h) in faces_in_image:
+                face = gray[y:y+h, x:x+w]
+                face = cv2.resize(face, (100, 100))
+                faces.append(face)
+                labels.append(int(filename.split('.')[0]))
+
+    faces = np.array(faces) / 255.0
+    labels = np.array(labels)
+
+    X_train, X_test, y_train, y_test = train_test_split(faces, labels, test_size=0.2, random_state=42)
+    X_train, X_val, y_train, y_val = train_test_split(X_train, y_train, test_size=0.1, random_state=42)
+
+    for i in range(len(X_train)):
+        cv2.imwrite(os.path.join(train_path, f'{y_train[i]}_{i}.jpg'), X_train[i] * 255)
+    for i in range(len(X_test)):
+        cv2.imwrite(os.path.join(test_path, f'{y_test[i]}_{i}.jpg'), X_test[i] * 255)
+    for i in range(len(X_val)):
+        cv2.imwrite(os.path.join(val_path, f'{y_val[i]}_{i}.jpg'), X_val[i] * 255)
+
+    return X_train, X_val, X_test, y_train, y_val, y_test
+#----------------------------------------------------------------------------------------------------------------------
+
+#-----------------------------------------build model------------------------------------------------------------------
+# Build Model
+def build_model(input_shape=(100, 100, 1), num_classes=10):
+    model = Sequential([
+        Conv2D(32, (3, 3), activation='relu', input_shape=input_shape),
+        MaxPooling2D((2, 2)),
+        Conv2D(64, (3, 3), activation='relu'),
+        MaxPooling2D((2, 2)),
+        Flatten(),
+        Dense(128, activation='relu'),
+        Dense(num_classes, activation='softmax')
+    ])
+    model.compile(optimizer='adam', loss='sparse_categorical_crossentropy', metrics=['accuracy'])
+    return model
+#----------------------------------------------------------------------------------------------------------------------
+
+#-------------------------------------------------train model----------------------------------------------------------
+# Train Model
+def train_model(X_train, X_val, y_train, y_val, num_classes):
+    model = build_model(num_classes=num_classes)
+    X_train = X_train.reshape(-1, 100, 100, 1)
+    X_val = X_val.reshape(-1, 100, 100, 1)
+    model.fit(X_train, y_train, epochs=10, validation_data=(X_val, y_val))
+    model.save("datasets/CSM/csmt/csm.h5")
+#----------------------------------------------------------------------------------------------------------------------
+
+#---------------------------------------recognize face-----------------------------------------------------------------
+# Recognize Face
+def recognize_face(frame, model):
+    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+    face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
+    faces = face_cascade.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=5, minSize=(30, 30))
+
+    for (x, y, w, h) in faces:
+        face = gray[y:y+h, x:x+w]
+        face_resized = cv2.resize(face, (100, 100))
+        face_resized = face_resized.reshape(1, 100, 100, 1) / 255.0
+        prediction = model.predict(face_resized)
+        predicted_label = np.argmax(prediction)
+        confidence = np.max(prediction)
+
+        cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
+        cv2.putText(frame, f"{predicted_label} ({confidence:.2f})", (x, y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 0), 1)
+
+    cv2.imshow("Face Recognition", frame)
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()
+#----------------------------------------------------------------------------------------------------------------------
+
+#---------------------------------through cc cam-----------------------------------------------------------------------
+# Route to access CCTV camera
+@app.route('/access_cctv', methods=['POST'])
+def access_cctv():
+    data = request.get_json()
+    room_id = data.get('room_id')
+
+    # Replace with actual RTSP URL for the CCTV in the room
+    rtsp_url = f"rtsp://username:password@cctv-ip-address/{room_id}"
+
+    try:
+        cap = cv2.VideoCapture(rtsp_url)
+        if not cap.isOpened():
+            return jsonify({"success": False, "message": "Failed to connect to CCTV."})
+
+        # Process video stream (example: capture a frame)
+        ret, frame = cap.read()
+        if ret:
+            # Save the frame for further processing
+            cv2.imwrite('cctv_frame.jpg', frame)
+        cap.release()
+        return jsonify({"success": True, "message": "CCTV access successful."})
+
+    except Exception as e:
+        return jsonify({"success": False, "message": str(e)})
+#----------------------------------------------------------------------------------------------------------------------
+
+#----------------------------------through mobile cam------------------------------------------------------------------
+# Route to get mobile camera link
+@app.route('/get_mobile_link', methods=['POST'])
+def get_mobile_link():
+    data = request.get_json()
+    imei = data.get('imei')
+
+    # Simulate linking mobile camera
+    # Example: Use a custom mobile app or WebRTC to get a camera feed URL
+    if imei == '861612055290225':  # Replace with real IMEI validation
+        mobile_camera_url = "http://192.168.1.3:8080/video"  # Replace with dynamic IP
+    else:
+        return jsonify({"success": False, "message": "Invalid IMEI."})
+
+    # Open a connection to the IP Webcam video stream
+    cap = cv2.VideoCapture(mobile_camera_url)
+
+    # Define the duration for the video recording (in seconds)
+    # Record video from the IP Webcam feed
+    output_file = "output_video.mp4"
+    record_duration = 10  # Record duration in seconds
+    fps = 20
+    frame_width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+    frame_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+
+    # Create a named window with normal size (no auto-resizing)
+    cv2.namedWindow("Recording", cv2.WINDOW_NORMAL)
+
+    # Resize window to match the exact size of the video capture frame
+    cv2.resizeWindow("Recording", frame_width, frame_height)
+
+    # Check if the connection is successful
+    if not cap.isOpened():
+        print("Error: Unable to access the video stream!")
+        return jsonify({"success": False, "message": "Unable to access the video stream."})
+
+    # Define the codec and create a VideoWriter object
+    out = cv2.VideoWriter(output_file, cv2.VideoWriter_fourcc(*'mp4v'), 20.0, (frame_width, frame_height))
+
+    print("Recording started...")
+    start_time = time.time()
+
+    while True:
+        ret, frame = cap.read()
+        if not ret:
+            cap.release()
+            out.release()
+            print("Error: Unable to read from the video stream!")
+            break
+
+        # Write the frame to the output file
+        out.write(frame)
+
+        # Display the frame in a pop-up window (this is the live video window)
+        cv2.putText(frame, time.strftime("%Y-%m-%d %H:%M:%S"), (10, 30),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)  # Add timestamp to frame
+        cv2.imshow("Recording", frame)  # Create a window to display the video feed
+
+        # Stop recording after the specified duration
+        if time.time() - start_time > record_duration:
+            print("Recording finished!")
+            break
+
+        # Exit if 'q' is pressed
+        if cv2.waitKey(1) & 0xFF == ord('q'):
+            break
+
+    # Release resources
+    cap.release()
+    out.release()
+    cv2.destroyAllWindows()
+
+    # Extract frames after recording
+    extracted_frames = extract_frames(output_file, num_frames=5)
+
+    return jsonify({
+        "success": True,
+        "message": "Video recorded and frames extracted successfully.",
+        "extracted_frames": extracted_frames
+    })
+#----------------------------------------------------------------------------------------------------------------------
+
+#------------------------------------extract frames--------------------------------------------------------------------
+# Folder where the frames will be stored
+frames_folder = "extract_frames"
+
+# Ensure the folder exists
+if not os.path.exists(frames_folder):
+    os.makedirs(frames_folder)
+
+# Function to extract frames from the video
+def extract_frames(video_path, num_frames=5):
+    # Open the video file
+    cap = cv2.VideoCapture(video_path)
+
+    # Get total number of frames in the video
+    total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+
+    # Calculate the interval between frames to extract
+    frame_interval = total_frames // num_frames
+
+    frame_paths = []  # Store paths of the saved frames
+
+    # Extract frames at equal intervals
+    for i in range(num_frames):
+        # Set the current frame position
+        cap.set(cv2.CAP_PROP_POS_FRAMES, i * frame_interval)
+        ret, frame = cap.read()
+
+        if ret:
+            # Save the frame with a unique name (replace previous frames)
+            frame_filename = os.path.join(frames_folder, f"frame_{i + 1}.jpg")
+            cv2.imwrite(frame_filename, frame)
+            frame_paths.append(frame_filename)
+
+    cap.release()
+    return frame_paths
+#----------------------------------------------------------------------------------------------------------------------
 
 @app.route('/')
 def index():
@@ -144,8 +529,31 @@ def admin():
     # Renders the admin.html page (admin panel)
     return render_template('admin/admin.html')
 
+# Default faculty credentials (to be provided by admin)
+FACULTY_CREDENTIALS = {
+    "faculty123": "password123",
+    "faculty456": "securepass456"
+}
+@app.route('/faculty_login', methods=['GET', 'POST'])
+def faculty_login():
+    if request.method == 'POST':
+        faculty_id = request.form.get('faculty_id')
+        password = request.form.get('password')
+
+        # Verify credentials
+        if faculty_id in FACULTY_CREDENTIALS and FACULTY_CREDENTIALS[faculty_id] == password:
+            session['faculty_id'] = faculty_id  # Store faculty ID in session
+            return redirect(url_for('select_class'))  # Redirect to attendance page
+        else:
+            error_message = "Invalid Faculty ID or Password"
+            return render_template('faculty/faculty_login.html', error_message=error_message)
+    return render_template('faculty/faculty_login.html')
+
 @app.route('/select_class', methods=['GET', 'POST'])
 def select_class():
+    if 'faculty_id' not in session:  # Check if faculty is logged in
+        return redirect(url_for('faculty/faculty_login'))  # Redirect to login if not authenticated
+
     if request.method == 'POST':
         class_name = request.form.get('class_name')
         room_number = request.form.get('room_number')
@@ -157,52 +565,53 @@ def select_class():
             {'student_id': '21A51A4205', 'name': 'Sarah Davis', 'status': 'Absent', 'generated_at': '21-12-2024 & 15:33'},
             {'student_id': '21A51A4206', 'name': 'Yogeswara Rao', 'status': 'Present', 'generated_at': '21-12-2024 & 15:33'},
         ]
-        return render_template('user/get_attendance.html', class_name=class_name, room_number=room_number, attendance_data=attendance_data)
-    return render_template('user/select_class.html')
+        return render_template('faculty/get_attendance.html', class_name=class_name, room_number=room_number, attendance_data=attendance_data)
+    return render_template('faculty/select_class.html')
+
+@app.route('/logout')
+def logout():
+    session.pop('faculty_id', None)  # Clear the session
+    return redirect(url_for('faculty/faculty_login'))
 
 @app.route('/student_attendance', methods=['GET', 'POST'])
 def student_attendance():
-    student_data = None
+    roll_number = None
+    attendance_data = None
     error_message = None
     if request.method == 'POST':
         roll_number = request.form.get('roll_number')
-        attendance_data = {
-            "1001": {
-                "name": "John Doe",
-                "attendance": "85%",
-                "details": [
-                    {"date": "2024-12-01", "subject": "Mathematics", "status": "Present"},
-                    {"date": "2024-12-02", "subject": "Physics", "status": "Absent"},
-                    {"date": "2024-12-03", "subject": "Chemistry", "status": "Present"},
-                ],
-            },
-            "1002": {
-                "name": "Jane Smith",
-                "attendance": "90%",
-                "details": [
-                    {"date": "2024-12-01", "subject": "Mathematics", "status": "Present"},
-                    {"date": "2024-12-02", "subject": "Physics", "status": "Present"},
-                    {"date": "2024-12-03", "subject": "Chemistry", "status": "Present"},
-                ],
-            },
-        }
-        student_data = attendance_data.get(roll_number)
-        if not student_data:
-            error_message = "No record found for the entered roll number."
-    return render_template('student_details/student_attendance.html', student_data=student_data, error_message=error_message)
+
+        #connect to student_attendance.db
+        conn = sqlite3.connect('student_attendance.db')
+        cursor = conn.cursor()
+
+        try:
+            # Query the specific table based on student roll number
+            cursor.execute(f'SELECT status, time FROM "{roll_number}"')
+            attendance_data = cursor.fetchall()
+
+            if not attendance_data:
+                error_message = "No attendance records found for this roll number."
+
+        except sqlite3.Error as e:
+            error_message = f"Error occurred: {e}"
+
+        finally:
+            conn.close()
+    return render_template('student_details/student_attendance.html', roll_number=roll_number, attendance_data=attendance_data, error_message=error_message)
 
 '''
 @app.route('/get_attendance', methods=['POST'])
 def get_attendance():
     class_name = request.form['class_name']
     room_number = request.form['room_number']
-    return render_template('user/get_attendance.html', class_name=class_name, room_number=room_number)
+    return render_template('faculty/get_attendance.html', class_name=class_name, room_number=room_number)
 '''
 '''
-@app.route('/user')
-def user():
-    # Renders the user dashboard page (you can create this page as needed)
-    return render_template('user.html')
+@app.route('/faculty')
+def faculty():
+    # Renders the faculty dashboard page (you can create this page as needed)
+    return render_template('faculty.html')
 
 @app.route('/student')
 def student():
