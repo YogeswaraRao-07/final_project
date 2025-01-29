@@ -11,12 +11,13 @@ import cv2
 import numpy as np
 import shutil
 import tensorflow as tf
+from tqdm import tqdm
 from flask import Flask, render_template, request, jsonify, redirect, url_for, flash, session, Response
 from werkzeug.utils import secure_filename
 from sklearn.model_selection import train_test_split
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Conv2D, MaxPooling2D, Flatten, Dense
-#import face_recognition
+import face_recognition
 import pickle
 #----------------------------------------------------------------------------------------------------------------------
 
@@ -44,7 +45,7 @@ if not os.path.exists(DETECT_FOLDER):
 
 # Function to detect faces in a single frame
 def detect_faces_in_single_frame():
-    # Clear the detect_objects folder
+    #Clear the detect_objects folder
     for file in os.listdir(DETECT_FOLDER):
         file_path = os.path.join(DETECT_FOLDER, file)
         if os.path.isfile(file_path):
@@ -59,7 +60,7 @@ def detect_faces_in_single_frame():
         print("No frames found in the extract_frames folder.")
         return "No frames found."
 
-    selected_frame_path = os.path.join(EXTRACT_FRAMES_FOLDER, frames[0])  # First frame
+    selected_frame_path = os.path.join(EXTRACT_FRAMES_FOLDER, frames[1])  # First frame
     print(f"Selected frame: {selected_frame_path}")
 
     # Read the selected frame
@@ -85,7 +86,7 @@ def detect_faces_in_single_frame():
     print(f"Processed frame saved to {output_frame_path}.")
 
     # Return the count of detected faces
-    return {"message": "Face detection complete.", "face_count": len(faces)}
+    return {"message": "Face detection complete.", "face_count": len(faces), "frame_path": output_frame_path}
 #----------------------------------------------------------------------------------------------------------------------
 
 #---------------------------------------------uploading videos---------------------------------------------------------
@@ -111,57 +112,99 @@ def upload_video():
         file_path = os.path.join(app.config['UPLOAD_FOLDER'], 'uploaded_video.mp4')
         file.save(file_path)
 
-        # Train the model only if the .pkl file doesn't exist
+        # Path to the pre-trained model and student images
         model_path = 'face_encodings.pkl'
-        student_images_path = 'datasets/CSM/csm_images'  # Path to the student images directory
-        #if not os.path.exists(model_path):
-            # train_face_recognition_model(student_images_path, model_path)
+        student_images_path = 'datasets/CSM/csm_images'
+
+        # Train the model only if the .pkl file doesn't exist
+        if not os.path.exists(model_path):
+            train_face_recognition_model(student_images_path, model_path)
 
         extract_and_replace_frames(file_path)
 
+        # Detect faces in a frame
         face_detection_result = detect_faces_in_single_frame()
+        detected_frame_path = os.path.join(DETECT_FOLDER, 'detected_faces.jpg')
+
+        if not face_detection_result["frame_path"]:
+            return jsonify({
+                "success": False,
+                "message": "Failed to process frames or save the detected frame."
+            })
 
         # Recognize students' roll numbers
-        # recognized_roll_numbers = recognize_faces(face_detection_result["frame_path"], model_path)
+        recognized_roll_numbers = recognize_faces(face_detection_result["frame_path"], model_path)
 
-        return jsonify({"success": True, "message": "Video uploaded and frames replaced.", "face_detection_result": face_detection_result["message"], "face_count": face_detection_result["face_count"]})
-#, "recognized_students": recognized_roll_numbers
+        return jsonify({"success": True, "message": "Video uploaded and frames replaced.", "face_detection_result": face_detection_result["message"], "face_count": face_detection_result["face_count"],"processed_frame_path": face_detection_result["frame_path"], "recognized_students": recognized_roll_numbers})
     else:
         return jsonify({"success": False, "message": "Invalid file type."}), 400
 #----------------------------------------------------------------------------------------------------------------------
 
-# def train_face_recognition_model(student_images_path, output_model_path):
-#     face_encodings = {}
-#     for roll_number in os.listdir(student_images_path):
-#         student_folder = os.path.join(student_images_path, roll_number)
-#         if os.path.isdir(student_folder):
-#             for image_file in os.listdir(student_folder):
-#                 image_path = os.path.join(student_folder, image_file)
-#                 image = face_recognition.load_image_file(image_path)
-#                 face_locations = face_recognition.face_locations(image)
-#                 encodings = face_recognition.face_encodings(image, face_locations)
-#                 if encodings:
-#                     face_encodings[roll_number] = encodings[0]
-#
-#     with open(output_model_path, 'wb') as model_file:
-#         pickle.dump(face_encodings, model_file)
-#
-# def recognize_faces(frame_path, model_path='face_encodings.pkl'):
-#     with open(model_path, 'rb') as model_file:
-#         known_encodings = pickle.load(model_file)
-#
-#     frame = face_recognition.load_image_file(frame_path)
-#     face_locations = face_recognition.face_locations(frame)
-#     face_encodings = face_recognition.face_encodings(frame, face_locations)
-#
-#     recognized_roll_numbers = []
-#     for face_encoding in face_encodings:
-#         matches = face_recognition.compare_faces(list(known_encodings.values()), face_encoding)
-#         if True in matches:
-#             match_index = matches.index(True)
-#             recognized_roll_numbers.append(list(known_encodings.keys())[match_index])
-#
-#     return recognized_roll_numbers
+def train_face_recognition_model(student_images_path, model_path):
+    # Check if the model already exists
+    if os.path.exists(model_path):
+        print("Model file already exists. Skipping training.")
+        return
+
+    face_encodings = []
+    roll_numbers = []
+
+    # Get a list of student folders
+    student_folders = [folder for folder in os.listdir(student_images_path) if os.path.isdir(os.path.join(student_images_path, folder))]
+    print(f"Training on {len(student_folders)} students' data...")
+
+    # Iterate through each student's folder
+    for student_folder in tqdm(student_folders, desc="Processing Students", unit="student"):
+        student_folder_path = os.path.join(student_images_path, student_folder)
+
+        # if not os.path.isdir(student_folder_path):
+        #     continue  # Skip if it's not a folder
+
+        # Each folder contains images of a single student
+        for image_file in os.listdir(student_folder_path):
+            image_path = os.path.join(student_folder_path, image_file)
+
+            # Load the image
+            image = face_recognition.load_image_file(image_path)
+
+            # Get face encodings
+            encodings = face_recognition.face_encodings(image)
+
+            if len(encodings) > 0:  # Ensure a face was detected
+                face_encodings.append(encodings[0])
+                roll_numbers.append(student_folder)  # Use the folder name (roll number) as the label
+
+    # Save encodings and roll numbers to a .pkl file
+    with open(model_path, 'wb') as f:
+        pickle.dump({"encodings": face_encodings, "roll_numbers": roll_numbers}, f)
+
+    print(f"Model saved to {model_path}")
+
+def recognize_faces(detected_frame_path, model_path):
+    # Load the model (encodings and roll numbers)
+    with open(model_path, 'rb') as f:
+        data = pickle.load(f)
+        known_encodings = data["encodings"]
+        known_roll_numbers = data["roll_numbers"]
+
+    # Load the frame with detected faces
+    image = face_recognition.load_image_file(detected_frame_path)
+
+    # Get face encodings for faces in the frame
+    face_locations = face_recognition.face_locations(image)
+    face_encodings = face_recognition.face_encodings(image, face_locations)
+
+    recognized_roll_numbers = []
+
+    # Compare each face in the frame with known encodings
+    for face_encoding in face_encodings:
+        matches = face_recognition.compare_faces(known_encodings, face_encoding, tolerance=0.6)
+        if True in matches:
+            match_index = matches.index(True)
+            recognized_roll_numbers.append(known_roll_numbers[match_index])
+
+    return recognized_roll_numbers
+
 
 
 #----------------------------------------extract frames----------------------------------------------------------------
